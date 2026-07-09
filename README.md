@@ -236,7 +236,7 @@ For code contributions, please:
 
 ## Credits
 
-Built by **Zoxilsi** ([zoxilsi.cc](https://zoxilsi.cc)).
+Designed and created by **zoxilsi** — [X (Twitter)](https://x.com/zoxilsi) · [zoxilsi.cc](https://zoxilsi.cc)
 
 ---
 

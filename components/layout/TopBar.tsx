@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useAnimate } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Magnetic } from "@/components/ui/Magnetic";
 import { Kbd } from "@/components/ui/Kbd";
@@ -26,44 +26,43 @@ import { useMeshStore } from "@/store/meshStore";
 import { useUiStore } from "@/store/uiStore";
 
 function MoveTool() {
-  const [pulse, setPulse] = useState(0);
+  const [scope, animateEl] = useAnimate();
+
+  // Imperative animations always play — no mount/reduced-motion edge cases
+  // can swallow the feedback.
+  const onClick = () => {
+    animateEl(
+      "[data-move-icon]",
+      { rotate: [0, -22, 16, 0], scale: [1, 1.45, 1.15, 1] },
+      { duration: 0.55, ease: [0.32, 0.72, 0, 1] }
+    );
+    animateEl(
+      "[data-move-ring]",
+      { scale: [1, 1.9], opacity: [0.85, 0] },
+      { duration: 0.6, ease: "easeOut" }
+    );
+    animateEl(
+      "[data-move-btn]",
+      { scale: [1, 0.92, 1.06, 1] },
+      { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
+    );
+  };
+
   return (
-    <span className="relative inline-flex">
-      <AnimatePresence>
-        {pulse > 0 && (
-          <motion.span
-            key={pulse}
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full border border-ink/40"
-            initial={{ scale: 1, opacity: 0.7 }}
-            animate={{ scale: 1.5, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
-          />
-        )}
-      </AnimatePresence>
-      <Button
-        size="sm"
-        active
-        title="Move (V)"
-        aria-label="Move tool, active"
-        onClick={() => setPulse((p) => p + 1)}
-      >
-        <motion.span
-          key={pulse}
-          className="flex"
-          initial={false}
-          animate={
-            pulse > 0
-              ? { rotate: [0, -16, 12, 0], scale: [1, 1.3, 1.12, 1] }
-              : undefined
-          }
-          transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-        >
-          <PointsIcon />
-        </motion.span>
-        Move
-      </Button>
+    <span ref={scope} className="relative inline-flex">
+      <span
+        data-move-ring
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full border-2 border-ink/60 opacity-0"
+      />
+      <span data-move-btn className="inline-flex">
+        <Button size="sm" active title="Move (V)" aria-label="Move tool, active" onClick={onClick}>
+          <span data-move-icon className="flex">
+            <PointsIcon />
+          </span>
+          Move
+        </Button>
+      </span>
     </span>
   );
 }
