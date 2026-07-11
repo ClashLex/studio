@@ -27,12 +27,23 @@ export const metadata: Metadata = {
     "pattern background",
   ],
   alternates: { canonical: "/" },
+  icons: {
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png",   sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png",   sizes: "512x512", type: "image/png" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    shortcut: "/favicon-32.png",
+  },
   openGraph: {
     title: "zoxilsi studio",
     description:
       "Design and export beautiful mesh gradients, patterns and backdrops in your browser.",
     url: "https://studio.zoxilsi.cc",
     siteName: "zoxilsi studio",
+    images: [{ url: "/icon-512.png", width: 512, height: 512 }],
     type: "website",
   },
   twitter: {
@@ -40,6 +51,7 @@ export const metadata: Metadata = {
     title: "zoxilsi studio",
     description:
       "Design and export beautiful mesh gradients, patterns and backdrops in your browser.",
+    images: ["/icon-512.png"],
   },
   robots: { index: true, follow: true },
 };
