@@ -34,10 +34,10 @@ export function Inspector() {
           animate={{ width: "auto", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="z-30 h-full shrink-0 overflow-hidden border-l border-glass-border bg-glass backdrop-blur-2xl max-md:absolute max-md:right-0 max-md:top-0"
+          className="z-30 shrink-0 overflow-hidden border-l border-glass-border bg-glass backdrop-blur-2xl lg:h-full max-lg:fixed max-lg:bottom-0 max-lg:right-0 max-lg:top-12 max-lg:shadow-panel"
           aria-label="Inspector"
         >
-          <div className="flex h-full w-[17.5rem] flex-col">
+          <div className="flex h-full w-[min(88vw,17.5rem)] flex-col lg:w-[17.5rem]">
             <div className="studio-scroll flex-1 overflow-y-auto overscroll-contain">
               <Section title="Settings" defaultOpen>
                 <SettingsSection />

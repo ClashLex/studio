@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/icons";
 import { useMeshStore } from "@/store/meshStore";
 import { useUiStore } from "@/store/uiStore";
+import { cn } from "@/lib/utils";
 
 export function PlaybackBar() {
   const playing = useMeshStore((s) => s.doc.animation.playing);
@@ -29,13 +30,18 @@ export function PlaybackBar() {
   const commit = useMeshStore((s) => s.commit);
   const showHandles = useUiStore((s) => s.showHandles);
   const toggleHandles = useUiStore((s) => s.toggleHandles);
+  // On compact screens a drawer takes over — get the transport out of its way.
+  const panelOpen = useUiStore((s) => s.presetsOpen || s.inspectorOpen);
 
   return (
     <motion.div
       initial={{ y: 48, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.15 }}
-      className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-3"
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-4 z-30 flex justify-center px-3",
+        panelOpen && "max-lg:hidden"
+      )}
     >
       <GlassPanel className="pointer-events-auto flex items-center gap-1 rounded-full px-2 py-1.5">
         <span className="relative inline-flex">

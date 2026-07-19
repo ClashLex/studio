@@ -142,14 +142,14 @@ export function TopBar() {
   const setExportOpen = useUiStore((s) => s.setExportOpen);
 
   return (
-    <header className="relative z-40 flex h-12 shrink-0 items-center justify-between border-b border-glass-border bg-glass px-3 backdrop-blur-2xl backdrop-saturate-150">
-      <div className="flex items-center gap-2.5">
-        <span className="studio-orb h-5 w-5 rounded-full shadow-lift" aria-hidden />
-        <span className="text-[14px] font-semibold tracking-tight text-ink">zoxilsi studio</span>
+    <header className="relative z-40 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-glass-border bg-glass px-2 backdrop-blur-2xl backdrop-saturate-150 sm:px-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="studio-orb h-5 w-5 shrink-0 rounded-full shadow-lift" aria-hidden />
+        <span className="hidden truncate text-[14px] font-semibold tracking-tight text-ink sm:inline">zoxilsi studio</span>
         <span className="hidden text-[11px] text-faint lg:inline">Mesh gradient studio</span>
       </div>
 
-      <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1" role="toolbar" aria-label="Tools">
+      <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 xl:flex" role="toolbar" aria-label="Tools">
         <MoveTool />
         <AddLineMenu />
       </div>
@@ -162,7 +162,7 @@ export function TopBar() {
           <RedoIcon />
         </Button>
 
-        <span className="mx-1.5 h-5 w-px bg-glass-border" aria-hidden />
+        <span className="mx-1.5 hidden h-5 w-px bg-glass-border sm:block" aria-hidden />
 
         <Button size="icon" aria-label="Toggle presets" title="Presets (P)" active={presetsOpen} onClick={togglePresets}>
           <GridIcon />
@@ -171,7 +171,7 @@ export function TopBar() {
           <SlidersIcon />
         </Button>
 
-        <span className="mx-1.5 h-5 w-px bg-glass-border" aria-hidden />
+        <span className="mx-1.5 hidden h-5 w-px bg-glass-border sm:block" aria-hidden />
 
         <Button
           size="icon"

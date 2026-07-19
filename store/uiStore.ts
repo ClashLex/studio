@@ -6,6 +6,7 @@
  */
 
 import { create } from "zustand";
+import { isCompact } from "@/lib/utils";
 
 export type Theme = "dark" | "light";
 
@@ -24,6 +25,7 @@ interface UiStore {
   toggleTheme: () => void;
   toggleInspector: () => void;
   togglePresets: () => void;
+  closePanels: () => void;
   setExportOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   setSupportOpen: (open: boolean) => void;
@@ -58,8 +60,23 @@ export const useUiStore = create<UiStore>((set, get) => ({
     set({ theme });
   },
   toggleTheme: () => get().setTheme(get().theme === "dark" ? "light" : "dark"),
-  toggleInspector: () => set((s) => ({ inspectorOpen: !s.inspectorOpen })),
-  togglePresets: () => set((s) => ({ presetsOpen: !s.presetsOpen })),
+
+  // On compact screens only one drawer fits, so opening one closes the other.
+  toggleInspector: () =>
+    set((s) => {
+      const inspectorOpen = !s.inspectorOpen;
+      return inspectorOpen && isCompact()
+        ? { inspectorOpen, presetsOpen: false }
+        : { inspectorOpen };
+    }),
+  togglePresets: () =>
+    set((s) => {
+      const presetsOpen = !s.presetsOpen;
+      return presetsOpen && isCompact()
+        ? { presetsOpen, inspectorOpen: false }
+        : { presetsOpen };
+    }),
+  closePanels: () => set({ presetsOpen: false, inspectorOpen: false }),
   setExportOpen: (open) => set({ exportOpen: open }),
   setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
   setSupportOpen: (open) => set({ supportOpen: open }),

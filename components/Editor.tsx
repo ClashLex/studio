@@ -36,6 +36,9 @@ const Artboard = dynamic(
 export function Editor() {
   useKeyboardShortcuts();
   const syncThemeFromDom = useUiStore((s) => s.syncThemeFromDom);
+  const presetsOpen = useUiStore((s) => s.presetsOpen);
+  const inspectorOpen = useUiStore((s) => s.inspectorOpen);
+  const closePanels = useUiStore((s) => s.closePanels);
 
   useEffect(() => {
     syncThemeFromDom();
@@ -44,6 +47,11 @@ export function Editor() {
     const glassMosaic = PRESETS.find((p) => p.name === "Glass Mosaic");
     if (glassMosaic) {
       useMeshStore.getState().applyDoc(glassMosaic.doc);
+    }
+
+    // On compact screens the side panels are drawers — start with a clear canvas.
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      useUiStore.setState({ presetsOpen: false, inspectorOpen: false });
     }
 
     // Honor reduced motion: start paused (pressing play still works —
@@ -73,6 +81,16 @@ export function Editor() {
           </p>
         </main>
         <Inspector />
+
+        {/* Mobile: dim + tap-to-dismiss behind an open drawer. */}
+        {(presetsOpen || inspectorOpen) && (
+          <button
+            type="button"
+            aria-label="Close panel"
+            onClick={closePanels}
+            className="fixed inset-x-0 bottom-0 top-12 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
+          />
+        )}
       </div>
       <ExportDialog />
       <ShortcutsDialog />

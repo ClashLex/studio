@@ -13,11 +13,18 @@ import { renderThumbnail } from "@/lib/mesh";
 import { useMeshStore } from "@/store/meshStore";
 import { useUiStore } from "@/store/uiStore";
 import type { PresetCategory } from "@/types/gradient";
-import { cn } from "@/lib/utils";
+import { cn, isCompact } from "@/lib/utils";
 
 export function PresetsRail() {
   const open = useUiStore((s) => s.presetsOpen);
+  const closePanels = useUiStore((s) => s.closePanels);
   const applyDoc = useMeshStore((s) => s.applyDoc);
+
+  // Applying a preset on a compact screen dismisses the drawer to reveal the canvas.
+  const applyPreset = (doc: Parameters<typeof applyDoc>[0]) => {
+    applyDoc(doc);
+    if (isCompact()) closePanels();
+  };
   const [category, setCategory] = useState<PresetCategory | "All">("All");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
 
@@ -39,10 +46,10 @@ export function PresetsRail() {
           animate={{ width: "auto", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          className="z-30 h-full shrink-0 overflow-hidden border-r border-glass-border bg-glass backdrop-blur-2xl max-md:absolute max-md:left-0 max-md:top-0"
+          className="z-30 shrink-0 overflow-hidden border-r border-glass-border bg-glass backdrop-blur-2xl lg:h-full max-lg:fixed max-lg:bottom-0 max-lg:left-0 max-lg:top-12 max-lg:shadow-panel"
           aria-label="Preset browser"
         >
-          <div className="flex h-full w-60 flex-col">
+          <div className="flex h-full w-[min(82vw,15rem)] flex-col lg:w-60">
             <header className="border-b border-glass-border px-4 py-2.5">
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
                 Presets
@@ -78,7 +85,7 @@ export function PresetsRail() {
                   transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.25 }}
                   whileHover={{ y: -2, scale: 1.03 }}
                   whileTap={{ scale: 0.96 }}
-                  onClick={() => applyDoc(preset.doc)}
+                  onClick={() => applyPreset(preset.doc)}
                   className={cn(
                     "group relative h-20 cursor-pointer overflow-hidden rounded-lg border border-glass-border shadow-sm outline-none transition-shadow hover:shadow-lift",
                     "focus-visible:ring-2 focus-visible:ring-focus"
