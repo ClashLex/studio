@@ -42,6 +42,9 @@ export const RedoIcon = (p: SVGProps<SVGSVGElement>) => (
 export const PlusIcon = (p: SVGProps<SVGSVGElement>) => (
   <Icon {...p}><path d="M8 3.5v9M3.5 8h9" /></Icon>
 );
+export const MinusIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Icon {...p}><path d="M3.5 8h9" /></Icon>
+);
 export const TrashIcon = (p: SVGProps<SVGSVGElement>) => (
   <Icon {...p}><path d="M3 4.5h10M6.5 4.5v-1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M4.5 4.5l.5 8a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.5-8" /></Icon>
 );

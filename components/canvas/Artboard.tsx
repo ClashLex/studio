@@ -17,6 +17,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { Capacitor } from "@capacitor/core";
+import { Button } from "@/components/ui/Button";
+import { GlassPanel } from "@/components/ui/GlassPanel";
+import { MinusIcon, PlusIcon } from "@/components/ui/icons";
 import { meshVertexShader, meshFragmentShader, COLOR_SPACE_INDEX } from "@/shaders/meshPass";
 import {
   postVertexShader,
@@ -30,6 +33,10 @@ import { hexToRgb } from "@/lib/color";
 import { useMeshStore } from "@/store/meshStore";
 import type { MeshDoc } from "@/types/gradient";
 import { MeshOverlay } from "./MeshOverlay";
+
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.5;
+const ZOOM_STEP = 0.1;
 
 function MeshPipeline() {
   const size = useThree((s) => s.size);
@@ -220,14 +227,20 @@ export function Artboard() {
   const areaRef = useRef<HTMLDivElement>(null);
   const width = useMeshStore((s) => s.doc.canvas.width);
   const height = useMeshStore((s) => s.doc.canvas.height);
+  const [zoom, setZoom] = useState(1);
   const isAndroidApp = Capacitor.getPlatform() === "android";
   const rect = useArtboardRect(areaRef, width / Math.max(1, height), isAndroidApp);
+  const zoomBy = (amount: number) => {
+    setZoom((current) =>
+      Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current + amount)) * 10) / 10
+    );
+  };
 
   return (
     <div ref={areaRef} className="relative h-full w-full">
       <div
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: rect.width, height: rect.height }}
+        style={{ width: Math.round(rect.width * zoom), height: Math.round(rect.height * zoom) }}
       >
         <div className="absolute inset-0 overflow-hidden rounded-lg shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-glass-border">
           <Canvas
@@ -251,6 +264,39 @@ export function Artboard() {
           </Canvas>
         </div>
         <MeshOverlay />
+      </div>
+      <div className="absolute right-3 top-3 z-40" role="group" aria-label="Canvas zoom controls">
+        <GlassPanel className="flex items-center gap-1 rounded-full p-1">
+          <Button
+            size="icon"
+            className="h-9 w-9"
+            aria-label="Zoom out"
+            title="Zoom out"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={() => zoomBy(-ZOOM_STEP)}
+          >
+            <MinusIcon />
+          </Button>
+          <Button
+            size="sm"
+            className="h-9 min-w-12 px-2 font-mono tabular-nums"
+            aria-label={`Reset zoom (${Math.round(zoom * 100)}%)`}
+            title="Reset zoom"
+            onClick={() => setZoom(1)}
+          >
+            {Math.round(zoom * 100)}%
+          </Button>
+          <Button
+            size="icon"
+            className="h-9 w-9"
+            aria-label="Zoom in"
+            title="Zoom in"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={() => zoomBy(ZOOM_STEP)}
+          >
+            <PlusIcon />
+          </Button>
+        </GlassPanel>
       </div>
     </div>
   );
