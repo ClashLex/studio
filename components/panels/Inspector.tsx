@@ -7,6 +7,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { Section } from "@/components/ui/Section";
 import { Button } from "@/components/ui/Button";
 import { DownloadIcon } from "@/components/ui/icons";
@@ -22,6 +23,7 @@ import { useMeshStore } from "@/store/meshStore";
 import { useUiStore } from "@/store/uiStore";
 
 export function Inspector() {
+  const isAndroidApp = Capacitor.getPlatform() === "android";
   const open = useUiStore((s) => s.inspectorOpen);
   const setExportOpen = useUiStore((s) => s.setExportOpen);
   const hasSelection = useMeshStore((s) => s.selectedId !== null);
@@ -35,6 +37,7 @@ export function Inspector() {
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           className="z-30 shrink-0 overflow-hidden border-l border-glass-border bg-glass backdrop-blur-2xl lg:h-full max-lg:fixed max-lg:bottom-0 max-lg:right-0 max-lg:top-12 max-lg:shadow-panel"
+          style={isAndroidApp ? { bottom: "var(--android-bottom-inset, 0px)" } : undefined}
           aria-label="Inspector"
         >
           <div className="flex h-full w-[min(88vw,17.5rem)] flex-col lg:w-[17.5rem]">

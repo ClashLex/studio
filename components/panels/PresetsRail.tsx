@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { PRESETS, PRESET_CATEGORIES } from "@/lib/presets";
 import { renderThumbnail } from "@/lib/mesh";
 import { useMeshStore } from "@/store/meshStore";
@@ -23,6 +24,7 @@ import type { PresetCategory } from "@/types/gradient";
 import { cn, isCompact } from "@/lib/utils";
 
 export function PresetsRail() {
+  const isAndroidApp = Capacitor.getPlatform() === "android";
   const open = useUiStore((s) => s.presetsOpen);
   const closePanels = useUiStore((s) => s.closePanels);
   const applyDoc = useMeshStore((s) => s.applyDoc);
@@ -88,6 +90,7 @@ export function PresetsRail() {
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           className="z-30 shrink-0 overflow-hidden border-r border-glass-border bg-glass backdrop-blur-2xl lg:h-full max-lg:fixed max-lg:bottom-0 max-lg:left-0 max-lg:top-12 max-lg:shadow-panel"
+          style={isAndroidApp ? { bottom: "var(--android-bottom-inset, 0px)" } : undefined}
           aria-label="Preset browser"
         >
           <div className="flex h-full w-[min(82vw,15rem)] flex-col lg:w-60">

@@ -9,6 +9,7 @@
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { MotionConfig } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { TopBar } from "@/components/layout/TopBar";
 import { PlaybackBar } from "@/components/layout/PlaybackBar";
 import { Inspector } from "@/components/panels/Inspector";
@@ -34,6 +35,7 @@ const Artboard = dynamic(
 );
 
 export function Editor() {
+  const isAndroidApp = Capacitor.getPlatform() === "android";
   useKeyboardShortcuts();
   const syncThemeFromDom = useUiStore((s) => s.syncThemeFromDom);
   const presetsOpen = useUiStore((s) => s.presetsOpen);
@@ -63,7 +65,10 @@ export function Editor() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="flex h-dvh flex-col overflow-hidden bg-workspace font-sans text-ink">
+    <div
+      className="flex h-dvh flex-col overflow-hidden bg-workspace font-sans text-ink"
+      style={isAndroidApp ? { paddingBottom: "var(--android-bottom-inset, 0px)" } : undefined}
+    >
       <TopBar />
       <div className="relative flex min-h-0 flex-1">
         <PresetsRail />
@@ -89,6 +94,7 @@ export function Editor() {
             aria-label="Close panel"
             onClick={closePanels}
             className="fixed inset-x-0 bottom-0 top-12 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
+            style={isAndroidApp ? { bottom: "var(--android-bottom-inset, 0px)" } : undefined}
           />
         )}
       </div>
