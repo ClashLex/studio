@@ -24,7 +24,8 @@ when direct APK distribution is needed.
   can be suspended or killed, so draft recovery should be addressed before a
   store release.
 - Capacitor configuration and the generated Android project are in place. The
-  remaining Phase 1 work is building, installing, and validating the debug APK.
+  debug APK builds successfully; installation and runtime validation on an
+  emulator or physical device remain.
 
 ## Proposed architecture
 
@@ -127,7 +128,15 @@ committing keystores or credentials.
 ## Initial local workflow
 
 Install Android Studio, the Android SDK/platform tools, and a JDK supported by
-the generated Gradle toolchain (JDK 21 for Capacitor 8). Then run:
+the generated Gradle toolchain (JDK 21 for Capacitor 8). On Windows, point the
+build at Android Studio's bundled JDK and the SDK if they are not on `PATH`:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+```
+
+Then run:
 
 ```powershell
 pnpm install --frozen-lockfile
