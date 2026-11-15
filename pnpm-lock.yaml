@@ -14,6 +14,12 @@ importers:
       '@capacitor/core':
         specifier: ^8.6.2
         version: 8.6.2
+      '@capacitor/filesystem':
+        specifier: ^8.1.5
+        version: 8.1.5(@capacitor/core@8.6.2)
+      '@capacitor/share':
+        specifier: ^8.0.3
+        version: 8.0.3(@capacitor/core@8.6.2)
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.8(@react-three/fiber@9.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.185.1))(@types/react@19.2.18)(@types/three@0.185.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.185.1)
@@ -98,6 +104,19 @@ packages:
 
   '@capacitor/core@8.6.2':
     resolution: {integrity: sha512-UEb9crRuqEAe2Iu2eGOEuQ8rLQxpwg7ZZIpl17UJoytEpnV1e4oXXW0K7yYS2NsCOGmJjyLeKjNlgG7tkAoX8g==}
+
+  '@capacitor/filesystem@8.1.5':
+    resolution: {integrity: sha512-m1RkI8L83NJeppEKyRWioK3MDp2vjlA+QfUQcF8/xRlcXNC2HYxqoyYJ+K4M0EcVovy+g+4F24S05+bhK4Vgdg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/share@8.0.3':
+    resolution: {integrity: sha512-gnvZBV1NPu2B8vd1UKncR56G15ueHd0aZLqgDov++t3SmTBG9Q0VrAZ1VnHn5stxlmglVaTb4RwopMgbpLzroA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/synapse@1.0.4':
+    resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
@@ -2512,6 +2531,17 @@ snapshots:
   '@capacitor/core@8.6.2':
     dependencies:
       tslib: 2.8.1
+
+  '@capacitor/filesystem@8.1.5(@capacitor/core@8.6.2)':
+    dependencies:
+      '@capacitor/core': 8.6.2
+      '@capacitor/synapse': 1.0.4
+
+  '@capacitor/share@8.0.3(@capacitor/core@8.6.2)':
+    dependencies:
+      '@capacitor/core': 8.6.2
+
+  '@capacitor/synapse@1.0.4': {}
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 

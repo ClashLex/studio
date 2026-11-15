@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useRef, useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Dialog } from "@/components/ui/Dialog";
 import { Segmented } from "@/components/ui/Segmented";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +15,7 @@ import { CheckIcon, CopyIcon, DownloadIcon, FilmIcon } from "@/components/ui/ico
 import { engine } from "@/lib/engine";
 import {
   copyText,
+  constrainExportDimensions,
   downloadBlob,
   downloadText,
   exportCss,
@@ -85,6 +87,8 @@ export function ExportDialog() {
   const setSupportNudgeOpen = useUiStore((s) => s.setSupportNudgeOpen);
   const doc = useMeshStore((s) => s.doc);
   const applyDoc = useMeshStore((s) => s.applyDoc);
+  const isAndroidApp = Capacitor.getPlatform() === "android";
+  const maxImageEdge = 8192;
 
   // Close export, then let the support nudge slide in — the small delay
   // avoids two backdrops overlapping mid-transition.
@@ -100,22 +104,41 @@ export function ExportDialog() {
 
   useEffect(() => {
     if (open) {
-      setWidth(doc.canvas.width);
-      setHeight(doc.canvas.height);
+      const dimensions = constrainExportDimensions(
+        doc.canvas.width,
+        doc.canvas.height,
+        maxImageEdge
+      );
+      setWidth(dimensions.width);
+      setHeight(dimensions.height);
     }
-  }, [open, doc.canvas.width, doc.canvas.height]);
+  }, [open, doc.canvas.width, doc.canvas.height, maxImageEdge]);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [duration, setDuration] = useState<(typeof DURATIONS)[number]["value"]>("5");
-  const [videoSize, setVideoSize] = useState<(typeof VIDEO_SIZES)[number]["value"]>("2160");
-  const [videoFps, setVideoFps] = useState<(typeof VIDEO_FPS)[number]["value"]>("60");
+  const [videoSize, setVideoSize] = useState<(typeof VIDEO_SIZES)[number]["value"]>(
+    isAndroidApp ? "1080" : "2160"
+  );
+  const [videoFps, setVideoFps] = useState<(typeof VIDEO_FPS)[number]["value"]>(
+    isAndroidApp ? "30" : "60"
+  );
   const [recProgress, setRecProgress] = useState<number | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [codeFormat, setCodeFormat] = useState<CodeFormat>("json");
   const [copied, setCopied] = useState(false);
+
+  const finishDownload = () => {
+    if (isAndroidApp) {
+      setSuccess("Saved to Documents/zoxilsi studio/exports.");
+    } else {
+      nudgeSupport();
+    }
+  };
 
   const code = useMemo(() => {
     switch (codeFormat) {
@@ -130,32 +153,52 @@ export function ExportDialog() {
 
   const exportImage = async () => {
     setBusy(true);
+    setSaving(false);
     setError(null);
+    setSuccess(null);
     try {
-      const blob = await renderImageBlob(
-        doc,
-        engine.time,
-        {
-          width: clamp(Math.round(width) || 4000, 16, 8192),
-          height: clamp(Math.round(height) || 3000, 16, 8192),
-          format,
-        },
-        engine.flowTime
+      const dimensions = constrainExportDimensions(
+        Math.round(width) || 4000,
+        Math.round(height) || 3000,
+        maxImageEdge
       );
-      downloadBlob(blob, `studio-gradient.${format}`);
-      nudgeSupport();
+      setWidth(dimensions.width);
+      setHeight(dimensions.height);
+      engine.exporting = true;
+      let blob: Blob;
+      try {
+        blob = await renderImageBlob(
+          doc,
+          engine.time,
+          {
+            width: dimensions.width,
+            height: dimensions.height,
+            format,
+          },
+          engine.flowTime
+        );
+      } finally {
+        engine.exporting = false;
+        engine.invalidate?.();
+      }
+      setSaving(true);
+      await downloadBlob(blob, `studio-gradient.${format}`);
+      finishDownload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed.");
     } finally {
       setBusy(false);
+      setSaving(false);
     }
   };
 
   const startRecording = async () => {
     setError(null);
+    setSuccess(null);
+    setSaving(false);
     const seconds = Number(duration);
-    const sizeTemplate = VIDEO_SIZES.find((s) => s.value === videoSize) ?? VIDEO_SIZES[2];
-    
+    const sizeTemplate = VIDEO_SIZES.find((s) => s.value === videoSize) ?? VIDEO_SIZES[0];
+
     // Wire export to follow canvas aspect ratio
     const ratio = doc.canvas.width / doc.canvas.height;
     const isPortrait = ratio < 1;
@@ -163,8 +206,10 @@ export function ExportDialog() {
     const makeEven = (n: number) => 2 * Math.round(n / 2);
     const w = makeEven(isPortrait ? shortEdge : shortEdge * ratio);
     const h = makeEven(isPortrait ? shortEdge / ratio : shortEdge);
+    let timer: number | null = null;
 
     try {
+      engine.exporting = true;
       const rec = renderVideoBlob(
         doc,
         { width: w, height: h, fps: Number(videoFps), seconds },
@@ -173,19 +218,29 @@ export function ExportDialog() {
       stopRef.current = rec.stop;
       setRecProgress(0);
       const started = performance.now();
-      const timer = window.setInterval(() => {
+      timer = window.setInterval(() => {
         setRecProgress(Math.min(1, (performance.now() - started) / (seconds * 1000)));
       }, 100);
       const blob = await rec.done;
-      window.clearInterval(timer);
+      if (timer !== null) window.clearInterval(timer);
+      timer = null;
       setRecProgress(null);
       stopRef.current = null;
+      engine.exporting = false;
+      engine.invalidate?.();
       const ext = rec.mimeType.includes("mp4") ? "mp4" : "webm";
-      downloadBlob(blob, `studio-gradient-${sizeTemplate.label.toLowerCase()}.${ext}`);
-      nudgeSupport();
+      setSaving(true);
+      await downloadBlob(blob, `studio-gradient-${sizeTemplate.label.toLowerCase()}.${ext}`);
+      finishDownload();
     } catch (err) {
+      if (timer !== null) window.clearInterval(timer);
+      stopRef.current = null;
+      engine.exporting = false;
+      engine.invalidate?.();
       setRecProgress(null);
       setError(err instanceof Error ? err.message : "Recording failed.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -245,9 +300,11 @@ export function ExportDialog() {
                     <input
                       type="number"
                       min={16}
-                      max={8192}
+                      max={maxImageEdge}
                       value={value}
-                      onChange={(e) => set(Number(e.target.value))}
+                      onChange={(e) =>
+                        set(clamp(Number(e.target.value) || 16, 16, maxImageEdge))
+                      }
                       className="h-8 w-full rounded-lg border border-glass-border bg-glass-soft px-2.5 font-mono text-[11px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     />
                   </label>
@@ -255,29 +312,65 @@ export function ExportDialog() {
               </div>
             </div>
             <Segmented label="Choose format" options={IMG_FORMATS} value={format} onChange={setFormat} />
-            <Button variant="primary" disabled={busy} onClick={exportImage} className="self-start">
+            <Button
+              variant="primary"
+              disabled={busy || saving}
+              onClick={exportImage}
+              className="self-start"
+            >
               <DownloadIcon />
-              {busy ? "Rendering…" : `Download ${format.toUpperCase()}`}
+              {saving
+                ? "Saving…"
+                : busy
+                ? "Rendering…"
+                : `${isAndroidApp ? "Save" : "Download"} ${format.toUpperCase()}`}
             </Button>
+            {isAndroidApp && (
+              <p className="text-[11px] leading-relaxed text-faint">
+                All web resolution presets are available. The largest sizes depend on this device’s
+                GPU and available memory. Saved files appear in Documents/zoxilsi studio/exports.
+              </p>
+            )}
           </>
         )}
 
         {tab === "video" && (
           <>
-            <Segmented label="Resolution" options={VIDEO_SIZES} value={videoSize} onChange={setVideoSize} />
+            <Segmented
+              label="Resolution"
+              options={VIDEO_SIZES}
+              value={videoSize}
+              onChange={setVideoSize}
+            />
             <div className="flex flex-wrap gap-4">
-              <Segmented label="Frame rate" options={VIDEO_FPS} value={videoFps} onChange={setVideoFps} />
-              <Segmented label="Duration" options={DURATIONS} value={duration} onChange={setDuration} />
+              <Segmented
+                label="Frame rate"
+                options={VIDEO_FPS}
+                value={videoFps}
+                onChange={setVideoFps}
+              />
+              <Segmented
+                label="Duration"
+                options={DURATIONS}
+                value={duration}
+                onChange={setDuration}
+              />
             </div>
             <p className="text-[11px] leading-relaxed text-faint">
-              Renders the animation offscreen at the full chosen resolution —
-              drift, hue flow and grain all move — and encodes at a bitrate
-              matched to the pixel rate, so 4K stays crisp. Keep this tab
-              visible while recording.
+              {isAndroidApp
+                ? "All web video options are available. The largest settings depend on this device’s GPU, memory and video encoder. Files save to Documents/zoxilsi studio/exports. "
+                : "Renders the animation offscreen at the full chosen resolution —"}
+              {!isAndroidApp &&
+                "drift, hue flow and grain all move — and encodes at a bitrate matched to the pixel rate, so 4K stays crisp. Keep this tab visible while recording."}
             </p>
             {recProgress === null ? (
-              <Button variant="primary" onClick={startRecording} className="self-start">
-                <FilmIcon /> Record {duration}s clip
+              <Button
+                variant="primary"
+                disabled={saving}
+                onClick={startRecording}
+                className="self-start"
+              >
+                {saving ? <><DownloadIcon /> Saving…</> : <><FilmIcon /> Record {duration}s clip</>}
               </Button>
             ) : (
               <div className="flex items-center gap-3">
@@ -319,9 +412,22 @@ export function ExportDialog() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => downloadText(code, `studio-gradient.${codeExt[codeFormat]}`)}
+                disabled={saving}
+                onClick={async () => {
+                  setError(null);
+                  setSuccess(null);
+                  setSaving(true);
+                  try {
+                    await downloadText(code, `studio-gradient.${codeExt[codeFormat]}`);
+                    finishDownload();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Export failed.");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
               >
-                <DownloadIcon /> Download
+                <DownloadIcon /> {saving ? "Saving…" : isAndroidApp ? "Save" : "Download"}
               </Button>
               <Button variant="outline" onClick={() => fileRef.current?.click()}>
                 Import project…
@@ -347,6 +453,7 @@ export function ExportDialog() {
         )}
 
         {error && <p className="text-[11px] text-red-400">{error}</p>}
+        {success && <p role="status" className="text-[11px] text-emerald-500">{success}</p>}
       </div>
     </Dialog>
   );
