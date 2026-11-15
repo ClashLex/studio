@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useAnimate } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/Button";
 import { Magnetic } from "@/components/ui/Magnetic";
 import { Kbd } from "@/components/ui/Kbd";
@@ -69,7 +70,7 @@ function MoveTool() {
   );
 }
 
-function AddLineMenu() {
+function AddLineMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const addLine = useMeshStore((s) => s.addLine);
@@ -85,10 +86,22 @@ function AddLineMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <Button size="sm" active={open} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu">
+      <Button
+        size={compact ? "icon" : "sm"}
+        active={open}
+        onClick={() => setOpen(!open)}
+        aria-label={compact ? "Add line" : undefined}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        title={compact ? "Add line" : undefined}
+      >
         <PlusIcon />
-        Add Line
-        <ChevronIcon className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+        {!compact && (
+          <>
+            Add Line
+            <ChevronIcon className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+          </>
+        )}
       </Button>
       <AnimatePresence>
         {open && (
@@ -98,7 +111,7 @@ function AddLineMenu() {
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
             role="menu"
-            className="absolute left-1/2 top-full z-50 mt-2 w-48 -translate-x-1/2 rounded-xl border border-glass-border bg-glass p-1 shadow-panel backdrop-blur-2xl"
+            className={`absolute ${compact ? "left-0" : "left-1/2 -translate-x-1/2"} top-full z-50 mt-2 w-48 rounded-xl border border-glass-border bg-glass p-1 shadow-panel backdrop-blur-2xl`}
           >
             {(
               [
@@ -128,6 +141,7 @@ function AddLineMenu() {
 }
 
 export function TopBar() {
+  const [isAndroidApp, setIsAndroidApp] = useState(false);
   const canUndo = useMeshStore((s) => s.past.length > 0);
   const canRedo = useMeshStore((s) => s.future.length > 0);
   const undo = useMeshStore((s) => s.undo);
@@ -141,6 +155,10 @@ export function TopBar() {
   const toggleInspector = useUiStore((s) => s.toggleInspector);
   const setExportOpen = useUiStore((s) => s.setExportOpen);
 
+  useEffect(() => {
+    setIsAndroidApp(Capacitor.getPlatform() === "android");
+  }, []);
+
   return (
     <header className="relative z-40 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-glass-border bg-glass px-2 backdrop-blur-2xl backdrop-saturate-150 sm:px-3">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -149,12 +167,15 @@ export function TopBar() {
         <span className="hidden text-[11px] text-faint lg:inline">Mesh gradient studio</span>
       </div>
 
-      <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 xl:flex" role="toolbar" aria-label="Tools">
-        <MoveTool />
-        <AddLineMenu />
-      </div>
+      {!isAndroidApp && (
+        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 xl:flex" role="toolbar" aria-label="Tools">
+          <MoveTool />
+          <AddLineMenu />
+        </div>
+      )}
 
       <nav className="flex items-center gap-1" aria-label="Editor actions">
+        {isAndroidApp && <AddLineMenu compact />}
         <Button size="icon" aria-label="Undo" title="Undo (⌘Z)" disabled={!canUndo} onClick={undo}>
           <UndoIcon />
         </Button>

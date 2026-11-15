@@ -265,7 +265,7 @@ export function Artboard() {
         </div>
         <MeshOverlay />
       </div>
-      <div className="absolute right-3 top-3 z-40" role="group" aria-label="Canvas zoom controls">
+      <div className="absolute right-3 top-3 z-10" role="group" aria-label="Canvas zoom controls">
         <GlassPanel className="flex items-center gap-1 rounded-full p-1">
           <Button
             size="icon"
