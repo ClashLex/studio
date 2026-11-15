@@ -190,7 +190,11 @@ function MeshPipeline() {
 }
 
 /** Contain-fit the artboard inside the workspace area. */
-function useArtboardRect(areaRef: React.RefObject<HTMLDivElement | null>, aspect: number) {
+function useArtboardRect(
+  areaRef: React.RefObject<HTMLDivElement | null>,
+  aspect: number,
+  isAndroidApp: boolean
+) {
   const [rect, setRect] = useState({ width: 320, height: 240 });
   useEffect(() => {
     const el = areaRef.current;
@@ -199,7 +203,7 @@ function useArtboardRect(areaRef: React.RefObject<HTMLDivElement | null>, aspect
       const { width, height } = el.getBoundingClientRect();
       // Generous padding: the lattice (and its handles) bleeds ~8% past
       // the artboard on every side and must stay clear of the panels.
-      const availW = Math.max(120, width - 190);
+      const availW = Math.max(120, width - (isAndroidApp ? 112 : 190));
       const availH = Math.max(120, height - 170);
       const w = Math.min(availW, availH * aspect);
       setRect({ width: Math.round(w), height: Math.round(w / aspect) });
@@ -208,7 +212,7 @@ function useArtboardRect(areaRef: React.RefObject<HTMLDivElement | null>, aspect
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [areaRef, aspect]);
+  }, [areaRef, aspect, isAndroidApp]);
   return rect;
 }
 
@@ -216,7 +220,8 @@ export function Artboard() {
   const areaRef = useRef<HTMLDivElement>(null);
   const width = useMeshStore((s) => s.doc.canvas.width);
   const height = useMeshStore((s) => s.doc.canvas.height);
-  const rect = useArtboardRect(areaRef, width / Math.max(1, height));
+  const isAndroidApp = Capacitor.getPlatform() === "android";
+  const rect = useArtboardRect(areaRef, width / Math.max(1, height), isAndroidApp);
 
   return (
     <div ref={areaRef} className="relative h-full w-full">
