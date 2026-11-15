@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { Capacitor } from "@capacitor/core";
 import { meshVertexShader, meshFragmentShader, COLOR_SPACE_INDEX } from "@/shaders/meshPass";
 import {
   postVertexShader,
@@ -27,13 +28,32 @@ import { createSurfaceBuffers, evalSurface, subdivisionFor } from "@/lib/mesh";
 import { engine } from "@/lib/engine";
 import { hexToRgb } from "@/lib/color";
 import { useMeshStore } from "@/store/meshStore";
+import type { MeshDoc } from "@/types/gradient";
 import { MeshOverlay } from "./MeshOverlay";
 
 function MeshPipeline() {
   const size = useThree((s) => s.size);
   const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   const rows = useMeshStore((s) => s.doc.rows);
   const cols = useMeshStore((s) => s.doc.cols);
+  const lastNodes = useRef<MeshDoc["nodes"] | null>(null);
+  const lastColorSpace = useRef<MeshDoc["canvas"]["colorSpace"] | null>(null);
+  const lastFlowTime = useRef<number | null>(null);
+  const lastEffects = useRef<MeshDoc["effects"] | null>(null);
+  const lastBackground = useRef<string | null>(null);
+
+  useEffect(() => {
+    engine.invalidate = invalidate;
+    const unsubscribe = useMeshStore.subscribe((state, previous) => {
+      if (state.doc !== previous.doc) invalidate();
+    });
+    invalidate();
+    return () => {
+      unsubscribe();
+      if (engine.invalidate === invalidate) engine.invalidate = null;
+    };
+  }, [invalidate]);
 
   const pipeline = useMemo(() => {
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -104,14 +124,34 @@ function MeshPipeline() {
     pipeline.postUniforms.uResolution.value = [w, h];
   }, [size, gl, pipeline]);
 
-  useFrame(({ gl: renderer }, delta) => {
+  useFrame(({ gl: renderer, invalidate: requestFrame }, delta) => {
+    if (engine.exporting) return;
+
     // Clamp dt so returning from a background tab doesn't teleport nodes.
     const dt = Math.min(delta, 0.1);
     const doc = useMeshStore.getState().doc;
-    engine.tick(doc, dt);
-    engine.syncColors(doc);
+    const moving = engine.tick(doc, dt);
+    const colorSpaceChanged = doc.canvas.colorSpace !== lastColorSpace.current;
+    const colorsChanged =
+      doc.nodes !== lastNodes.current ||
+      colorSpaceChanged ||
+      engine.flowTime !== lastFlowTime.current;
+    if (colorsChanged) {
+      engine.syncColors(doc);
+      lastNodes.current = doc.nodes;
+      lastFlowTime.current = engine.flowTime;
+    }
+    if (colorSpaceChanged) {
+      pipeline.meshMaterial.uniforms.uColorSpace.value =
+        COLOR_SPACE_INDEX[doc.canvas.colorSpace] ?? 2;
+      lastColorSpace.current = doc.canvas.colorSpace;
+    }
 
-    if (doc.rows === rows && doc.cols === cols) {
+    if (
+      doc.rows === rows &&
+      doc.cols === cols &&
+      (colorsChanged || moving || engine.surface?.positions !== surface.buf.positions)
+    ) {
       evalSurface(surface.buf, rows, cols, surface.sub, engine.nodePos, engine.nodeCol, doc.nodes);
       surface.geometry.attributes.position.needsUpdate = true;
       surface.geometry.attributes.color.needsUpdate = true;
@@ -125,19 +165,25 @@ function MeshPipeline() {
       };
     }
 
-    pipeline.meshMaterial.uniforms.uColorSpace.value =
-      COLOR_SPACE_INDEX[doc.canvas.colorSpace] ?? 2;
-    applyEffectsUniforms(pipeline.postUniforms, doc.effects);
+    if (doc.effects !== lastEffects.current) {
+      applyEffectsUniforms(pipeline.postUniforms, doc.effects);
+      lastEffects.current = doc.effects;
+    }
+    if (doc.canvas.backgroundColor !== lastBackground.current) {
+      const bg = hexToRgb(doc.canvas.backgroundColor);
+      pipeline.clearColor.setRGB(bg.r, bg.g, bg.b, THREE.LinearSRGBColorSpace);
+      renderer.setClearColor(pipeline.clearColor, 1);
+      lastBackground.current = doc.canvas.backgroundColor;
+    }
     pipeline.postUniforms.uTime.value = engine.shaderTime;
     pipeline.postUniforms.tDiffuse.value = pipeline.target.texture;
 
-    const bg = hexToRgb(doc.canvas.backgroundColor);
-    pipeline.clearColor.setRGB(bg.r, bg.g, bg.b, THREE.LinearSRGBColorSpace);
-    renderer.setClearColor(pipeline.clearColor, 1);
     renderer.setRenderTarget(pipeline.target);
     renderer.render(pipeline.meshScene, pipeline.camera);
     renderer.setRenderTarget(null);
     renderer.render(pipeline.postScene, pipeline.camera);
+    engine.updateOverlay?.();
+    if (doc.animation.playing || moving) requestFrame();
   }, 1); // priority 1 = we own the render loop
 
   return null;
@@ -181,8 +227,8 @@ export function Artboard() {
         <div className="absolute inset-0 overflow-hidden rounded-lg shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-glass-border">
           <Canvas
             className="!absolute inset-0"
-            dpr={[1, 2]}
-            frameloop="always"
+            dpr={Capacitor.getPlatform() === "android" ? 1.25 : [1, 2]}
+            frameloop="demand"
             gl={{
               antialias: true,
               alpha: false,

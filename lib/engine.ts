@@ -103,6 +103,12 @@ export interface SurfaceSnapshot {
 class Engine {
   /** The live WebGL canvas — registered by the artboard, used by video export. */
   canvasEl: HTMLCanvasElement | null = null;
+  /** R3F's render request, used by interactions outside the Canvas tree. */
+  invalidate: (() => void) | null = null;
+  /** Temporarily stops the live renderer while an offscreen export runs. */
+  exporting = false;
+  /** DOM overlay update, scheduled only when the WebGL scene renders. */
+  updateOverlay: (() => void) | null = null;
 
   /** Set by the render pipeline every frame; read by the wireframe overlay. */
   surface: SurfaceSnapshot | null = null;
@@ -130,8 +136,9 @@ class Engine {
 
   private smooth = new Map<string, { x: number; y: number }>();
 
-  tick(doc: MeshDoc, dt: number) {
+  tick(doc: MeshDoc, dt: number): boolean {
     const { animation } = doc;
+    let moving = animation.playing;
     if (animation.playing) {
       const dir = animation.reversed ? -1 : 1;
       this.time += dt * animation.speed * dir;
@@ -141,9 +148,8 @@ class Engine {
       // Hue flow integrates its rate per-frame, so the slider acts as a
       // live speed control and never rotates hues while paused.
       this.flowTime += dt * animation.speed * dir * (animation.hueFlow ?? 0);
-	} else {
-		// 	On animation pause hue flow resets and points turn back to their original colors.
-		this.flowTime = 0;
+    } else {
+      this.flowTime = 0;
     }
 
     const n = Math.min(doc.nodes.length, MAX_NODES);
@@ -167,6 +173,9 @@ class Engine {
       const kk = this.dragId === node.id ? 1 - Math.exp(-dt * 90) : k;
       s.x += (target.x - s.x) * kk;
       s.y += (target.y - s.y) * kk;
+      if (Math.abs(target.x - s.x) > 1e-4 || Math.abs(target.y - s.y) > 1e-4) {
+        moving = true;
+      }
 
       this.nodePos[i * 2] = s.x;
       this.nodePos[i * 2 + 1] = s.y;
@@ -176,6 +185,7 @@ class Engine {
       const ids = new Set(doc.nodes.map((p) => p.id));
       for (const id of this.smooth.keys()) if (!ids.has(id)) this.smooth.delete(id);
     }
+    return moving;
   }
 
   /** Refill the color buffer (cheap — runs every frame for simplicity). */

@@ -5,9 +5,8 @@
  * from the exact surface buffer the GPU renders), draggable node
  * handles, and — for the selected node — four bezier tangent handles.
  *
- * Nodes are real buttons (focusable, arrow-key nudgeable). All positions
- * are driven by a rAF loop reading the engine, so the chrome rides the
- * animation perfectly.
+ * Nodes are real buttons (focusable, arrow-key nudgeable). Positions are
+ * synchronized with rendered WebGL frames rather than a separate rAF loop.
  */
 
 import { useEffect, useRef } from "react";
@@ -74,10 +73,10 @@ export function MeshOverlay() {
 
   useEffect(() => {
     let raf = 0;
-    const loop = () => {
-      raf = requestAnimationFrame(loop);
+    const update = () => {
+      raf = 0;
       const container = containerRef.current;
-      if (!container) return;
+      if (!container || !useUiStore.getState().showHandles) return;
       const { width: W, height: H } = container.getBoundingClientRect();
       const state = useMeshStore.getState();
       const liveDoc = state.doc;
@@ -151,9 +150,22 @@ export function MeshOverlay() {
         });
       }
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+
+    engine.updateOverlay = schedule;
+    schedule();
+    return () => {
+      cancelAnimationFrame(raf);
+      if (engine.updateOverlay === schedule) engine.updateOverlay = null;
+    };
   }, []);
+
+  useEffect(() => {
+    engine.updateOverlay?.();
+  }, [doc.rows, doc.cols, selectedId, showHandles]);
 
   /* ----------------------- cursor force field tracking --------------------- */
 
@@ -165,8 +177,14 @@ export function MeshOverlay() {
       engine.mouse.x = (e.clientX - rect.left) / rect.width;
       engine.mouse.y = 1 - (e.clientY - rect.top) / rect.height;
       engine.mouse.active = true;
+      if (useMeshStore.getState().doc.animation.mouseMode !== "none") {
+        engine.invalidate?.();
+      }
     };
-    const onLeave = () => (engine.mouse.active = false);
+    const onLeave = () => {
+      engine.mouse.active = false;
+      engine.invalidate?.();
+    };
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerleave", onLeave);
     return () => {
@@ -291,12 +309,14 @@ export function MeshOverlay() {
               engine.dragId = node.id;
               engine.dragX = pos.x;
               engine.dragY = pos.y;
+              engine.invalidate?.();
             }}
             onPointerMove={(e) => {
               if (engine.dragId !== node.id) return;
               const pos = normalize(e.clientX, e.clientY);
               engine.dragX = pos.x;
               engine.dragY = pos.y;
+              engine.invalidate?.();
             }}
             onPointerUp={(e) => {
               if (engine.dragId !== node.id) return;
