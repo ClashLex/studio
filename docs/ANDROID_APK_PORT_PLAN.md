@@ -36,8 +36,8 @@ when direct APK distribution is needed.
 4. Generate the native Android project with Capacitor and use Android Studio /
    Gradle for emulator runs, APK builds, and release signing.
 5. Add Capacitor plugins only where platform behavior is needed (for example,
-   native share/save or app lifecycle), keeping browser behavior available for
-   the web deployment.
+   native Android save or app lifecycle), keeping browser behavior available
+   for the web deployment.
 
 The Android application ID should be based on the project's domain. The
 initial scaffold may use `cc.zoxilsi.studio`; confirm ownership and the final
@@ -67,8 +67,8 @@ APK with the editor loading from the packaged assets while offline.
 
 - Exercise PNG/JPG/WebP export, project JSON export/import, and code export on
   emulator and physical devices.
-- Replace or augment browser-only anchor downloads with native save/share
-  flows where the WebView does not reliably expose downloaded files.
+- Save Android exports directly to `Documents/zoxilsi studio/exports` where
+  the WebView does not reliably expose browser downloads.
 - Verify the Android document picker can open project files and that import
   errors remain visible to the user.
 - Keep the current browser paths intact for the website.
@@ -81,8 +81,9 @@ Android destination and import a saved project through the system picker.
 - Add draft autosave/recovery for the active mesh document and restore it after
   app relaunch; define how this interacts with imported documents and undo
   history.
-- Respect Android status/navigation bars and display cutouts using safe-area
-  insets.
+- Keep the status bar visible and extend the Android app background behind the
+  bottom navigation area; inset bottom controls while leaving the website layout
+  unchanged.
 - Review touch target sizes, color-picker gestures, drawer behavior, keyboard
   visibility, and portrait/landscape layouts.
 - Detect unsupported or lost WebGL contexts and show a useful recovery message.
@@ -101,7 +102,7 @@ when the device cannot support a requested render.
 - Test a representative Android/API matrix, including low-memory hardware,
   current Android System WebView, and supported Android versions.
 - Verify `MediaRecorder`, `canvas.captureStream`, WebGL2, `toBlob`, clipboard,
-  file input, and native save/share behavior on real devices. Video recording
+  file input, and native save behavior on real devices. Video recording
   should have a clear fallback if unsupported.
 - Review Vercel Analytics, Microsoft Clarity, external support links, and
   payment/donation flows for privacy disclosures and Google Play policy.
@@ -169,7 +170,7 @@ intentionally a later phase.
 - WebGL2 and high-resolution offscreen renders can exceed mobile GPU or memory
   limits; desktop success does not establish phone compatibility.
 - `MediaRecorder` and video MIME support vary by Android WebView/device.
-- Browser downloads are not a substitute for a tested native save/share UX.
+- Browser downloads are not a substitute for a tested native save UX.
 - The final application ID and supported Android minimum version must be
   confirmed before release.
 - This plan does not create an iOS target; iOS work is deferred.
